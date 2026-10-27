@@ -95,7 +95,7 @@ the menu, so a model you add appears without a restart.
 
 | Kind | Found where | Picked at launch |
 |---|---|---|
-| Speech | The Hugging Face cache (`~/.cache/huggingface/hub`, or `$HF_HOME/hub`): Parakeet and Whisper models in MLX format. Whisper also needs `pip install mlx-whisper`. | Your last pick, else Parakeet TDT 0.6B v3, else the first one found |
+| Speech | The Hugging Face cache (`~/.cache/huggingface/hub`, or `$HF_HOME/hub`): Parakeet and Whisper models in MLX format (`mlx-community/…`). Other formats aren't found: whisper.cpp / MacWhisper `.bin`, faster-whisper, OpenAI `.pt`, Transformers `openai/whisper-*`. | Your last pick, else Parakeet TDT 0.6B v3, else the first one found |
 | LLM | Every chat model in [Ollama](https://ollama.com) and [LM Studio](https://lmstudio.ai), while they are running | Your last pick, else `gemma4:12b-mlx`, else the first one found |
 
 No speech model yet? Download one with the Hugging Face CLI that comes with the app's packages,
@@ -103,7 +103,7 @@ for example:
 
 ```bash
 .venv/bin/hf download mlx-community/parakeet-tdt-0.6b-v3      # 2.3 GB, 25 European languages, fastest
-.venv/bin/hf download mlx-community/whisper-large-v3-turbo    # ~100 languages, slower (needs mlx-whisper)
+.venv/bin/hf download mlx-community/whisper-large-v3-turbo    # 1.6 GB, ~100 languages, slower
 ```
 
 No LLM? Smart clean-up is optional: without it you get the raw transcript. For it, install Ollama

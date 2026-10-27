@@ -6,7 +6,7 @@ mono audio at sample_rate, in [-1, 1], and returns the text. Each engine imports
 when picked, so only the engine in use has to be installed.
 
     parakeet  NVIDIA Parakeet TDT with parakeet-mlx (default)
-    whisper   OpenAI Whisper family with mlx-whisper (pip install mlx-whisper)
+    whisper   OpenAI Whisper family with mlx-whisper (install.sh adds it without PyTorch)
 """
 import glob
 import importlib.util
@@ -53,6 +53,8 @@ def load(engine: str, model: str = ""):
     engines = {"parakeet": _parakeet, "whisper": _whisper}
     if engine not in engines:
         raise ValueError(f'unknown speech engine "{engine}": use {", ".join(engines)}')
+    if "mlx_whisper.transcribe" in sys.modules:   # mlx-whisper keeps its model in a class attribute: free it
+        sys.modules["mlx_whisper.transcribe"].ModelHolder.model = None   # (reloaded on its next use if still picked)
     return engines[engine](model or DEFAULT_MODELS[engine])
 
 
@@ -75,10 +77,13 @@ def _whisper(model: str):
         import mlx_whisper
         from mlx_whisper.audio import SAMPLE_RATE
     except ImportError:
-        raise ImportError("the whisper engine needs mlx-whisper: pip install mlx-whisper") from None
+        raise ImportError("the whisper engine needs mlx-whisper: run ./install.sh again") from None
     mx.set_cache_limit(MLX_CACHE)
 
     def transcribe(audio: np.ndarray) -> str:   # the model is loaded (and cached) on the first call
-        return mlx_whisper.transcribe(audio.astype(np.float32), path_or_hf_repo=model)["text"].strip()
+        # temperature 0 = no random retries: a 40 s clip took 5.1 s and came out garbled with them, 1.0 s
+        # without, and the live drafts stay comparable; no previous-text conditioning: no repeat loops past 30 s
+        return mlx_whisper.transcribe(audio.astype(np.float32), path_or_hf_repo=model, temperature=0.0,
+                                      condition_on_previous_text=False)["text"].strip()
     return transcribe, SAMPLE_RATE
 

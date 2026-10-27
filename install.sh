@@ -30,6 +30,7 @@ fi
 
 step "Installing the dependencies"
 $PY -m pip install --disable-pip-version-check -r src/requirements.txt
+$PY -m pip install --disable-pip-version-check --no-deps mlx-whisper==0.4.3   # Whisper engine, without PyTorch
 
 step "Building the app"
 STT_CLEAN_PYTHON=$PY zsh macos/build_app.sh

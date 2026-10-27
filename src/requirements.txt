@@ -1,6 +1,8 @@
 # STT-Clean (macOS, Apple silicon, Python 3.12+). Versions tested 27 Oct 2026. ./install.sh installs these.
 # Smart clean-up also needs a local LLM server, outside pip: Ollama or LM Studio.
-parakeet-mlx==0.5.3          # default speech engine; for Whisper models also: pip install mlx-whisper
+parakeet-mlx==0.5.3          # Parakeet speech engine
+tiktoken==0.14.0             # these two + mlx-whisper==0.4.3 = the Whisper speech engine; install.sh adds
+more-itertools==11.2.1       # mlx-whisper with --no-deps: its PyTorch (~1 GB) only converts models
 sounddevice==0.5.6
 numpy==2.5.4
 pyobjc-framework-Cocoa==12.2.2

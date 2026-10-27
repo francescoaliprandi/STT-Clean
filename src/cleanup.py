@@ -176,7 +176,7 @@ class Cleaner:
             self.last_error = f"{type(e).__name__}: {e}"
             return None
         if not plausible(raw, out):
-            self.last_error = f"implausible output ignored: {out[:80]!r}"
+            self.last_error = f"implausible output ignored ({len(out)} chars for {len(raw)}: an answer, not a clean-up?)"
             return None
         return out
 

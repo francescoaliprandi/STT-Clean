@@ -184,7 +184,7 @@ def work(args, ui: MenuBar) -> None:
             status("(no speech detected)", keep=True)
             erase_draft()
             return
-        status(f"✓ [{len(audio) / sr:.1f}s audio, {dt:.2f}s] {text}", keep=True)
+        status(f"✓ [{len(audio) / sr:.1f}s audio, {dt:.2f}s] {text}", keep=True, log=False)   # no dictated text on disk
         glossary.maybe_reload()
         text = glossary.apply(text)
         if ui.settings["llm"]:
@@ -196,7 +196,7 @@ def work(args, ui: MenuBar) -> None:
                 status(f"(LLM skipped, raw text pasted: {cleaner.last_error})", keep=True)
             else:
                 status(f"✨ [{dt:.2f}s] " + (cleaned.replace("\n", " ⏎ ") if cleaned != text else "(unchanged)"),
-                       keep=True)
+                       keep=True, log=False)
                 text = cleaned
         deliver(text)
 

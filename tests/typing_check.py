@@ -1,6 +1,6 @@
 """Check that live-draft keystrokes arrive intact: replays a heavy draft-churn sequence into a new
 TextEdit document with retype(), then reads the document back. Hands off the keyboard for ~15 s.
-Run it from the terminal that runs stt-clean (it needs that app's Accessibility permission):
+Run it from a terminal that has the Accessibility permission (System Settings → Privacy & Security):
 
     python tests/typing_check.py [pause_seconds]
 """

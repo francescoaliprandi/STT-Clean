@@ -16,12 +16,14 @@ xcode-select -p >/dev/null 2>&1 || fail "Install Apple's command line tools firs
 PY=$STT_CLEAN_PYTHON
 if [[ -z $PY ]]; then
   if [[ ! -x .venv/bin/python ]]; then
-    for p in python3.14 python3.13 python3.12 python3; do     # the dependencies need Python 3.12 or newer
-      if command -v $p >/dev/null && $p -c 'import sys; sys.exit(sys.version_info < (3, 12))' 2>/dev/null; then
+    # Python 3.12-3.14: every dependency has a ready-made package for them; for 3.15 some don't yet (PyYAML)
+    # shortcut: 3.15 left out; add it once  pip install --dry-run --only-binary=:all: --python-version 3.15 --platform macosx_14_0_arm64 --target /tmp/x -r src/requirements.txt  passes
+    for p in python3.14 python3.13 python3.12 python3; do
+      if command -v $p >/dev/null && $p -c 'import sys; sys.exit(not (3, 12) <= sys.version_info[:2] <= (3, 14))' 2>/dev/null; then
         BASE=$p; break
       fi
     done
-    [[ -n $BASE ]] || fail "Needs Python 3.12 or newer: install it from https://www.python.org/downloads/macos/ (or: brew install python), then run ./install.sh again."
+    [[ -n $BASE ]] || fail "Needs Python 3.12, 3.13 or 3.14 (3.15 is too new for some packages yet): install 3.14 from https://www.python.org/downloads/macos/ (or: brew install python@3.14), then run ./install.sh again."
     step "Creating the Python environment (.venv) with $($BASE --version)"
     $BASE -m venv .venv
   fi
@@ -36,10 +38,17 @@ step "Building the app"
 STT_CLEAN_PYTHON=$PY zsh macos/build_app.sh
 open build/STT-Clean.app
 
+found() { $PY -c "import sys; sys.path.insert(0, 'src'); import $1; sys.exit(not $1.available())" 2>/dev/null }
 print -r -- "
 ✓ STT-Clean is running: its icon is in the menu bar (top right).
   - Allow Accessibility when macOS asks (to type the text), and the Microphone on your first dictation.
-  - Right-click the icon: Speech and LLM list the models already on this Mac. No speech model
-    yet? See \"Models\" in README.md.
+  - Right-click the icon: Speech and LLM list the models already on this Mac.
   - Click the icon, speak, click again.
   - Start it at login: System Settings → General → Login Items → + → $PWD/build/STT-Clean.app"
+found stt || print -r -- "
+! No speech model on this Mac yet. Download one (2.3 GB), then pick it in the menu → Speech:
+    ${PY:h}/hf download mlx-community/parakeet-tdt-0.6b-v3
+  Other models: see \"Models\" in README.md."
+found cleanup || print -r -- "
+! No LLM server running, so you get the raw transcript. For the clean-up, install Ollama
+  (https://ollama.com), then:  ollama pull gemma4:12b-mlx   (or use any model in LM Studio)"

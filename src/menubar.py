@@ -27,7 +27,8 @@ UI = None                 # the MenuBar, once created
 
 def status(msg: str, keep: bool = False, log: bool = True) -> None:
     """Show `msg` in the menu's status line and print it. In a terminal the line is redrawn in place
-    unless `keep`; the app's log file gets every message except log=False ones (live-draft updates)."""
+    unless `keep`; the app's log file gets every message except log=False ones (live drafts and
+    dictated text: nothing you say is written to disk)."""
     if sys.stdout.isatty():
         print(f"\r\033[K{msg}", end="\n" if keep else "", flush=True)
     elif log:
@@ -290,7 +291,7 @@ class MenuBar(NSObject):
         app.orderFrontStandardAboutPanelWithOptions_({
             "ApplicationName": "STT-Clean", "ApplicationVersion": "1.0", "Version": "",
             "Credits": NSAttributedString.alloc().initWithString_(
-                f"Local dictation for macOS.\nSpeech: {self.current_stt[1]} ({self.current_stt[0]})\n"
+                f"Live speech-to-text with LLM refinement, on this Mac.\nSpeech: {self.current_stt[1]} ({self.current_stt[0]})\n"
                 f"LLM: {self.current_llm[1]} ({self.current_llm[0]})")})
 
     def editGlossary_(self, sender):

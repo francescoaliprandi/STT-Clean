@@ -1,0 +1,10 @@
+__pycache__/
+*.pyc
+.DS_Store
+.venv/
+# generated: the app bundle, the log and --debug output
+build/
+logs/
+# yours: the glossary (menu → Edit Glossary…), local notes for Claude Code
+config/glossary.txt
+CLAUDE.md

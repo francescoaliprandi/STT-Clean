@@ -15,7 +15,7 @@ jobs:
         with:
           python-version: "3.14"
       # what the unit tests import: not the speech engines (MLX), whose packages aren't needed to test them
-      - run: pip install numpy==2.5.4 pyobjc-framework-Cocoa==12.2.2 pyobjc-framework-Quartz==12.2.2 pyobjc-framework-ApplicationServices==12.2.2
+      - run: pip install numpy==2.5.4 sounddevice==0.5.6 pyobjc-framework-Cocoa==12.2.2 pyobjc-framework-Quartz==12.2.2 pyobjc-framework-ApplicationServices==12.2.2
       - run: python -m unittest discover tests -v
 
   windows:

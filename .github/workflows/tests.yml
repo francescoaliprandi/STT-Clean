@@ -1,0 +1,30 @@
+# Unit tests on macOS and Windows for every push and pull request. No model, mic, keyboard or LLM server:
+# the tests stub them, so a run takes a couple of minutes and fails only for a real reason.
+name: tests
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  macos:
+    runs-on: macos-14            # Apple silicon
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.14"
+      # what the unit tests import: not the speech engines (MLX), whose packages aren't needed to test them
+      - run: pip install numpy==2.5.4 pyobjc-framework-Cocoa==12.2.2 pyobjc-framework-Quartz==12.2.2 pyobjc-framework-ApplicationServices==12.2.2
+      - run: python -m unittest discover tests -v
+
+  windows:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.14"
+      - run: pip install numpy==2.5.4
+      # test_engines.py and test_live.py import AppKit (macOS); the shared logic they cover runs on macOS above
+      - run: python -m unittest discover tests -p "test_[cw]*.py" -v

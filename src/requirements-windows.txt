@@ -1,0 +1,8 @@
+# STT-Clean (Windows 10/11, x64, Python 3.12+). Versions tested 29 Oct 2026. install.cmd installs these.
+# Smart clean-up also needs a local LLM server, outside pip: LM Studio or Ollama.
+onnx-asr==0.12.0             # Parakeet speech engine (NeMo's ONNX export), on
+onnxruntime==1.31.1          # ONNX Runtime, CPU
+faster-whisper==1.2.1        # Whisper speech engine (CTranslate2), no PyTorch
+huggingface_hub==2.4.0       # the `hf` command that downloads the speech models (the app itself never does)
+sounddevice==0.5.6
+numpy==2.5.4

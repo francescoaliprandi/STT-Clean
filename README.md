@@ -4,6 +4,7 @@
 
 ![License: MIT](https://img.shields.io/badge/license-MIT-blue)
 ![macOS 14+, Apple silicon](https://img.shields.io/badge/macOS-14%2B%2C%20Apple%20silicon-lightgrey)
+![Windows 10 | 11, x64](https://img.shields.io/badge/Windows-10%20%7C%2011%2C%20x64-lightgrey)
 ![Python 3.12 | 3.13 | 3.14](https://img.shields.io/badge/python-3.12%20%7C%203.13%20%7C%203.14-blue)
 
 STT-Clean is a macOS menu-bar app that types what you say into any app, at the cursor. While you
@@ -14,6 +15,9 @@ translation ("write it in English"), and the clean text replaces the draft. It i
 around models you already have: it finds them, lists them in its menu, and never downloads one.
 Nothing leaves your Mac. On an M4, Parakeet TDT 0.6B v3 transcribes 44 s of speech in 1.2 s, and
 `gemma4:12b-mlx` refines a dictation in 0.6–3.3 s.
+
+It also runs on Windows 10 and 11, as an icon in the notification area, with the same menu, the
+same models in Windows formats on the CPU, and the same LLM step: see [Windows](#windows).
 
 | You say | Pasted |
 |---|---|
@@ -55,6 +59,31 @@ The app runs from this folder, so keep it where you cloned it. To update: `git p
 4. **Start at login** (optional): System Settings → General → Login Items → + →
    `build/STT-Clean.app`.
 
+### Windows
+
+| You need | Check / get it |
+|---|---|
+| Windows 10 or 11, 64-bit | Settings → System → About |
+| [Git for Windows](https://git-scm.com/download/win) (for `git clone`) | `git --version` |
+| Python 3.12, 3.13 or 3.14 | [python.org](https://www.python.org/downloads/windows/) or `winget install Python.Python.3.14` |
+
+```bat
+git clone https://github.com/riccardoroselli/STT-Clean.git
+cd STT-Clean
+install.cmd
+```
+
+`install.cmd` (or a double-click on it) runs `install.ps1`, which creates a Python environment in
+`.venv` (29 packages, 0.3 GB, no models), adds **STT-Clean** to the Start menu and starts it. When it
+finishes it tells you if a speech model or an LLM is missing, with the command to get one. To use a
+Python environment you already have: `set STT_CLEAN_PYTHON=C:\path\to\python.exe` before
+`install.cmd`. As on macOS, the app runs from this folder; to update: `git pull`, then `install.cmd`.
+
+First launch: there are no permissions to grant, except the microphone if Windows has it off for
+desktop apps (Settings → Privacy & security → Microphone → *Let desktop apps access your
+microphone*). The icon may land behind the **^** of the notification area: drag it onto the taskbar.
+To start it at login, copy the Start menu shortcut into the folder that `Win+R` → `shell:startup` opens.
+
 ## Models
 
 STT-Clean uses the models already on your Mac and checks for new ones every time you open its menu.
@@ -75,6 +104,21 @@ Whisper models in other formats are not found: whisper.cpp or MacWhisper `.bin` 
 faster-whisper, OpenAI `.pt` files, Transformers `openai/whisper-*`. Whisper pads every clip to
 30 s, so with large Whisper models the live draft updates less often than with Parakeet.
 
+On Windows the same models run on the CPU, in other formats, found in the same Hugging Face cache
+(`%USERPROFILE%\.cache\huggingface\hub`, or `%HF_HOME%\hub`):
+
+| Engine | Format | Download | Re-transcribing a 30 s clip (8-core Ryzen 7 8840HS) |
+|---|---|---|---|
+| Parakeet TDT 0.6B v3 (default) | ONNX, 8-bit ([onnx-asr](https://github.com/istupakov/onnx-asr)) | `.venv\Scripts\hf download istupakov/parakeet-tdt-0.6b-v3-onnx --include "*.int8.onnx" config.json vocab.txt nemo128.onnx` (0.6 GB) | 0.98 s |
+| Whisper large-v3-turbo | CTranslate2 ([faster-whisper](https://github.com/SYSTRAN/faster-whisper)) | `.venv\Scripts\hf download dropbox-dash/faster-whisper-large-v3-turbo` (1.6 GB) | ~16 s |
+
+The 8-bit Parakeet is what makes the live draft work without a GPU; the full-size export
+(`encoder-model.onnx*`, 2.5 GB) loads too. Whisper pads every clip to 30 s, which a CPU feels: use
+it for the languages Parakeet doesn't cover, with Live text off. For the LLM, LM Studio is the
+simplest on Windows: download `google/gemma-4-12b` (7.4 GB) and start its server
+(Developer → Start server), or `ollama pull gemma4:12b`. Check another model with
+`tests\bench_llm_win.py`.
+
 The LLM is optional; without one you get the raw transcript. For the refinement, install Ollama and
 run `ollama pull gemma4:12b-mlx` (7.7 GB, ~8 GB of RAM while loaded), or download a model in LM
 Studio. The prompt was tuned on Gemma 4: `gemma4:12b-mlx` passes all 16 cases of
@@ -92,6 +136,9 @@ refining it fail the check run when you pick them, and the previous model stays.
 | Smart clean-up (LLM) | Menu switch. Off: raw transcript, and the LLM's memory is freed. |
 | Live text while speaking | Menu switch. Off: only the final text is typed. |
 | Custom spellings | Menu → **Edit Glossary…** (see [Glossary](#glossary)) |
+
+On Windows the icon is in the notification area: it turns red while recording, with the clock in its
+tooltip (the notification area shows no text), and the paste is Ctrl+V.
 
 Your choices are remembered. Only one LLM is in memory at a time; it is unloaded when you switch,
 turn clean-up off or quit.
@@ -141,6 +188,13 @@ the LLM, which fixes close mis-hearings from context. Changes apply from the nex
 With Parakeet, transcribing the whole clip again takes ~0.25 s at 10 s of audio, ~0.5 s at 30–40 s
 and ~0.9 s at 50 s. Parakeet uses ~1.3 GB of RAM; its working cache is freed after each dictation.
 
+On Windows the same steps run in the `_win` modules (`tray_win.py`, `stt_win.py`, `output_win.py`,
+`esc_key_win.py`, `stt_clean_win.py`), through the Windows API directly (`win32.py`, no pywin32);
+`audio.py`, `live.py` and `cleanup.py` are shared. The paste uses the same trick as on macOS, text
+handed over when the app reads it, and hands it only to the app you dictate into: on Windows, WSL's
+and Remote Desktop's clipboard sync read every clipboard change at once and would pass for the paste.
+Parakeet (8-bit, CPU) re-transcribes a clip in ~0.3 s at 10 s, ~1 s at 30 s and ~1.5 s at 40 s.
+
 `build/STT-Clean.app` is a small compiled launcher (`macos/launcher.c`) that starts the Python app
 as a child process, so macOS gives the Microphone and Accessibility permissions to STT-Clean
 rather than to Python.
@@ -153,6 +207,7 @@ rather than to Python.
 | **Your voice** | Kept in memory during the dictation, never written to disk (unless you run it from a terminal with `--debug`, see [Development](#development)). |
 | **Dictated text** | Typed or pasted into your app, shown in the menu's status line, never written to disk. The clipboard is used for the paste and then restored. |
 | **Files it writes** | Menu choices: `~/Library/Preferences/com.riccardoroselli.stt-clean.plist`. Glossary: `config/glossary.txt`. Log of the current run (status and errors, no dictated text): `logs/stt-clean.log`, overwritten at each launch. |
+| **On Windows** | Menu choices: `%APPDATA%\STT-Clean\settings.json`; glossary and log as above. If Windows' clipboard history is on (Win+V), each dictation is added to it like anything you copy (and synced to your other PCs if you turned that on); the clipboard restored after the paste is not added again. |
 
 ## Troubleshooting
 
@@ -164,6 +219,9 @@ rather than to Python.
 | "No speech model found" | Download one ([Models](#models)), then pick it in the menu → Speech. |
 | "Ollama isn't running" | Open Ollama (or LM Studio), or turn Smart clean-up off. |
 | A model "didn't work" | It answered instead of refining, or thought too long. Pick another; `gemma4:12b-mlx` passes all checks. |
+| Windows: the icon isn't visible | It's behind the **^** in the notification area: drag it onto the taskbar. |
+| Windows: nothing is typed in one app | The app runs as administrator, which blocks keys from normal programs: the text goes to the clipboard and the menu says so. Paste with Ctrl+V, or run that app normally. |
+| Windows: "STT-Clean is already running" | Its icon is in the notification area; to restart it, Quit from its menu first. |
 | Anything else | Read `logs/stt-clean.log`. |
 
 Every `./install.sh` rebuilds the app, and macOS identifies an unsigned app by its exact contents:
@@ -171,7 +229,8 @@ allow Accessibility and the Microphone again after an update.
 
 **Reset or uninstall.** `defaults delete com.riccardoroselli.stt-clean` clears the menu choices.
 To uninstall, run it, remove STT-Clean from Login Items if you added it, and delete the folder. Your
-models stay where they are.
+models stay where they are. On Windows: Quit it, then delete the Start menu shortcut, the folder and
+`%APPDATA%\STT-Clean`.
 
 ## Limitations
 
@@ -183,6 +242,10 @@ models stay where they are.
   old clipboard can come back too early.
 - The LLM rewrites the whole text: long dictations take ~1 s per 20–25 words. Turn Smart clean-up off
   for raw speed.
+- Windows: an app run as administrator blocks the typing (Windows drops keys from normal programs
+  there); the text goes to the clipboard instead.
+- Windows, on the CPU: past ~30 s of speech the live draft updates about once a second, then slower;
+  the final text isn't affected. Whisper is much slower than Parakeet without a GPU.
 - Voice commands work as phrased in the prompt (`SYSTEM_PROMPT` in `src/cleanup.py`); there is no
   general voice-command engine.
 
@@ -201,7 +264,17 @@ src/                   The app (Python, ~1180 lines)
   cleanup.py           LLM client (Ollama, LM Studio), system prompt, glossary, fallbacks
   requirements.txt     Pinned dependencies
 
+  stt_clean_win.py     Windows: entry point and the same worker loop
+  stt_win.py           Windows: speech engines (Parakeet on ONNX Runtime, Whisper on CTranslate2)
+  tray_win.py          Windows: notification-area icon, menu, saved choices, status line
+  output_win.py        Windows: keystrokes, focus check, clipboard save/restore, Ctrl+V
+  esc_key_win.py       Windows: Esc as a global hot key while recording
+  win32.py             Windows: the Windows API calls, declared with ctypes
+  requirements-windows.txt   Pinned dependencies for Windows
+
+install.cmd, install.ps1   Windows one-step install: Python packages in .venv, Start menu shortcut
 macos/                 App bundle: build_app.sh, launcher.c, Info.plist, AppIcon.icns, make_icon.py
+windows/               AppIcon.ico, tray icons, make_icons.py
 tests/                 31 unit tests, LLM benchmark, end-to-end and typing checks
 assets/                Logo and 1024 px app icon
 ```
@@ -220,6 +293,22 @@ assets/                Logo and 1024 px app icon
 
 `--debug` keeps the last dictation's audio and live drafts in `logs/debug/` to replay it offline.
 After changing `SYSTEM_PROMPT` in `src/cleanup.py`, rerun `tests/bench_llm.py`.
+
+On Windows:
+
+```bat
+.venv\Scripts\python src\stt_clean_win.py --no-paste
+.venv\Scripts\python -m unittest discover tests -p "test_[cw]*.py"
+.venv\Scripts\python tests\bench_llm_win.py [model ...]
+.venv\Scripts\python tests\e2e_pipeline_win.py
+.venv\Scripts\python tests\typing_check_win.py
+```
+
+In order: run from a terminal (log there, text printed, not typed); the unit tests that run on
+Windows; `bench_llm.py`'s 16 dictations with the Windows app's settings; Windows speech synthesis →
+speech model → LLM, no mic; live-draft churn and the paste into Notepad (takes the keyboard ~15 s).
+GitHub Actions runs the unit tests on macOS and Windows for every push and pull request
+(`.github/workflows/tests.yml`).
 
 ## Licence
 

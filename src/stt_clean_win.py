@@ -20,6 +20,7 @@ import argparse
 import atexit
 import ctypes
 import os
+import re
 import shutil
 import signal
 import sys
@@ -39,8 +40,10 @@ from tray_win import GLOSSARY, ROOT, Tray, status
 import win32 as W
 
 MIN_SECONDS = 0.3         # shorter clicks are ignored
-# the LLM picked when none is yet: the one the prompt was tuned on (Gemma 4 12B), under its name in each server
-DEFAULT_LLMS = [("lmstudio", "google/gemma-4-12b"), ("ollama", "gemma4:12b")]
+# the LLM picked when none is yet: Gemma 4 12B, the one the prompt was tuned on, under any of its names
+# (LM Studio's id depends on the variant downloaded: google/gemma-4-12b, gemma-4-12b-it-qat, ...; Ollama: gemma4:12b)
+GEMMA = re.compile(r"gemma-?4[-:]12b", re.IGNORECASE)
+DEFAULT_LLM = ("lmstudio", "google/gemma-4-12b")    # named in the warning when no server has a model
 MEDIA = os.path.join(os.environ.get("WINDIR", r"C:\Windows"), "Media")
 SOUND_START = os.path.join(MEDIA, "Speech On.wav")
 SOUND_STOP = os.path.join(MEDIA, "Speech Off.wav")
@@ -50,6 +53,12 @@ SOUND_CANCEL = os.path.join(MEDIA, "Speech Sleep.wav")
 def play(path: str) -> None:
     if os.path.exists(path):
         winsound.PlaySound(path, winsound.SND_FILENAME | winsound.SND_ASYNC | winsound.SND_NODEFAULT)
+
+
+def default_llm(found: list) -> tuple:
+    """(provider, model) to use when none is picked yet, among `found` [(provider, model)]: Gemma 4 12B,
+    else the first one found."""
+    return next((c for c in found if GEMMA.search(c[1])), found[0] if found else DEFAULT_LLM)
 
 
 def save_debug(audio: np.ndarray, drafts: list) -> None:
@@ -106,7 +115,7 @@ def work(args, ui: Tray) -> None:
     provider, model = s["llm_provider"], s["llm_model"]
     if not model:             # nothing picked yet: the recommended model if installed, else the first one found
         found = [(p, n) for _, p, names in cleanup.available() for n in names]
-        provider, model = next((d for d in DEFAULT_LLMS if d in found), found[0] if found else DEFAULT_LLMS[0])
+        provider, model = default_llm(found)
     cleaner = Cleaner(model, "", glossary, provider=provider)
     ui.current_llm = (provider, model)
     atexit.register(lambda: cleaner.unload())   # frees the LLM's RAM on any exit (the current one)

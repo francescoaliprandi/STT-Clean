@@ -15,8 +15,9 @@ import numpy as np
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, os.path.join(ROOT, "src"))
 import stt_win as stt  # noqa: E402
+import cleanup  # noqa: E402
 from cleanup import Cleaner, Glossary  # noqa: E402
-from stt_clean_win import DEFAULT_LLMS  # noqa: E402
+from stt_clean_win import default_llm  # noqa: E402
 from tray_win import GLOSSARY, load_settings  # noqa: E402
 
 PHRASES = [
@@ -49,7 +50,8 @@ def main() -> None:
     s = load_settings()
     transcribe, sr = stt.load(s["stt"], s["stt_model"])
     glossary = Glossary(GLOSSARY)
-    provider, model = (s["llm_provider"], s["llm_model"]) if s["llm_model"] else DEFAULT_LLMS[0]
+    provider, model = (s["llm_provider"], s["llm_model"]) if s["llm_model"] else default_llm(
+        [(p, n) for _, p, names in cleanup.available() for n in names])
     cleaner = Cleaner(model, "", glossary, provider=provider)
     if warning := cleaner.check():
         sys.exit(warning)

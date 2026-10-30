@@ -100,6 +100,15 @@ class TestWindowsSettings(unittest.TestCase):
                 f.write("{ not json")
             self.assertEqual(tray_win.load_settings(path), tray_win.DEFAULTS)      # edited by hand, broken
 
+    def test_hotkey(self):
+        from tray_win import hotkey_label, parse_hotkey
+        self.assertEqual(parse_hotkey("ctrl+win+r"), (0x2 | 0x8, ord("R")))
+        self.assertEqual(parse_hotkey(" Ctrl + Alt + Space "), (0x2 | 0x1, 0x20))
+        self.assertEqual(parse_hotkey("f9"), (0, 0x78))
+        for bad in ("", "ctrl+", "hyper+r", "ctrl+è"):
+            self.assertIsNone(parse_hotkey(bad), bad)
+        self.assertEqual(hotkey_label("ctrl+win+r"), "Ctrl+Win+R")
+
 
 if __name__ == "__main__":
     unittest.main()

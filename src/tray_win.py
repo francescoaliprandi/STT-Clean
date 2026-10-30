@@ -45,7 +45,24 @@ def status(msg: str, keep: bool = False, log: bool = True) -> None:
 SETTINGS = os.path.join(os.environ.get("APPDATA") or os.path.expanduser("~"), "STT-Clean", "settings.json")
 DEFAULTS = {"llm": True, "live": True,                    # switches: smart clean-up, live text while speaking
             "stt": "parakeet", "stt_model": "",           # speech engine and model ("" = its default)
-            "llm_provider": "lmstudio", "llm_model": ""}  # LLM server and model ("" = found at launch)
+            "llm_provider": "lmstudio", "llm_model": "",  # LLM server and model ("" = found at launch)
+            "hotkey": "ctrl+win+r"}                       # start / stop from the keyboard ("" = click only)
+MODIFIERS = {"alt": 0x1, "ctrl": 0x2, "shift": 0x4, "win": 0x8}
+MOD_NOREPEAT = 0x4000     # holding the keys down doesn't toggle again and again
+KEYS = {"space": 0x20, **{f"f{n}": 0x6F + n for n in range(1, 25)}}
+
+
+def parse_hotkey(text: str) -> tuple | None:
+    """"ctrl+win+r" -> (modifiers, virtual key) for RegisterHotKey; None if empty or not understood."""
+    *mods, key = [p.strip().lower() for p in text.split("+")] if text.strip() else [""]
+    if not key or any(m not in MODIFIERS for m in mods):
+        return None
+    vk = KEYS.get(key) or (ord(key.upper()) if len(key) == 1 and key.isascii() and key.isalnum() else None)
+    return (sum(MODIFIERS[m] for m in mods), vk) if vk else None
+
+
+def hotkey_label(text: str) -> str:
+    return "+".join(p.strip().capitalize() for p in text.split("+"))
 
 
 def load_settings(path: str = SETTINGS) -> dict:
@@ -71,6 +88,7 @@ GLOSSARY_TEMPLATE = """\
 # ---------------------------------------------------------------- the tray icon
 WM_TRAY, WM_CALL = W.WM_APP + 1, W.WM_APP + 2
 CLOCK_TIMER, TICK_TIMER = 1, 2
+HOTKEY_ID = 2             # the start / stop shortcut (Esc while recording is esc_key_win's 1)
 # the taskbar and its pop-ups take the focus when you click the icon: they're never where the text goes
 SHELL = {"Shell_TrayWnd", "Shell_SecondaryTrayWnd", "NotifyIconOverflowWindow", "TopLevelWindowForOverflowXamlIsland",
          "XamlExplorerHostIslandWindow", "#32768"}
@@ -114,6 +132,11 @@ class Tray:
         self.hwnd = W.CreateWindowExW(0, "STT-Clean", "STT-Clean", 0, 0, 0, 0, 0, None, None, hinst, None)
         output_win.OWNER = self.hwnd
         self.esc = EscKey(self.hwnd, lambda: self.end("cancel") if self.recording else None)
+        self.shortcut = ""                 # the keyboard shortcut, if registered ("Ctrl+Win+R")
+        if self.settings["hotkey"]:
+            parsed = parse_hotkey(self.settings["hotkey"])
+            if parsed and W.RegisterHotKey(self.hwnd, HOTKEY_ID, parsed[0] | MOD_NOREPEAT, parsed[1]):
+                self.shortcut = hotkey_label(self.settings["hotkey"])   # else the worker warns, after Ready
         size = W.GetSystemMetrics(W.SM_CXSMICON)
         self.icons = {name: W.LoadImageW(None, os.path.join(ICONS, f"{name}.ico"), W.IMAGE_ICON, size, size,
                                          W.LR_LOADFROMFILE)
@@ -159,7 +182,10 @@ class Tray:
                     self.tip()
                 return 0
             if msg == W.WM_HOTKEY:
-                self.esc.pressed()
+                if wparam == HOTKEY_ID:
+                    self.pressed()
+                else:
+                    self.esc.pressed()
                 return 0
             if msg == W.WM_RENDERFORMAT:
                 output_win.render(wparam)
@@ -194,6 +220,14 @@ class Tray:
             time.sleep(0.05)               # and for the app to put the focus back in its text field
 
     # ---------------------------------------------------------------- clicks
+    def pressed(self) -> None:
+        """The keyboard shortcut: like a click, without leaving the app you're typing in."""
+        if self.ready:
+            if self.recording:
+                self.end("stop")
+            else:
+                self.start()
+
     def clicked(self) -> None:
         self.back_to_app()
         if self.ready:
@@ -343,6 +377,7 @@ class Tray:
         if self.recording:
             self.end("cancel")
         W.UnhookWinEvent(self.hook)
+        W.UnregisterHotKey(self.hwnd, HOTKEY_ID)
         W.Shell_NotifyIconW(W.NIM_DELETE, ctypes.byref(self.nid))
         W.DestroyWindow(self.hwnd)         # ends run(); atexit then unloads the LLM
 
@@ -358,7 +393,8 @@ class Tray:
     def tip(self, add: bool = False) -> None:
         if self.recording:
             s = int(time.monotonic() - self.t0)
-            tip = f"STT-Clean ● {s // 60}:{s % 60:02d}  (click to stop, Esc to cancel)"
+            again = f"click or {self.shortcut}" if self.shortcut else "click"
+            tip = f"STT-Clean ● {s // 60}:{s % 60:02d}  ({again} to stop, Esc to cancel)"
         else:
             tip = f"STT-Clean: {self.info}"
         self.nid.szTip = tip if len(tip) < 128 else tip[:126] + "…"

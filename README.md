@@ -138,7 +138,10 @@ refining it fail the check run when you pick them, and the previous model stays.
 | Custom spellings | Menu → **Edit Glossary…** (see [Glossary](#glossary)) |
 
 On Windows the icon is in the notification area: it turns red while recording, with the clock in its
-tooltip (the notification area shows no text), and the paste is Ctrl+V.
+tooltip (the notification area shows no text), and the paste is Ctrl+V. **Ctrl+Win+R** starts and
+stops a dictation from the keyboard, like a click, without leaving the app you type in; change it with
+`"hotkey"` in `%APPDATA%\STT-Clean\settings.json` (e.g. `"ctrl+alt+d"`, `""` for click only), then
+restart the app.
 
 Your choices are remembered. Only one LLM is in memory at a time; it is unloaded when you switch,
 turn clean-up off or quit.
@@ -235,6 +238,7 @@ models stay where they are. On Windows: Quit it, then delete the Start menu shor
 ## Limitations
 
 - Dictation starts and stops with a mouse click; there is no keyboard shortcut, and Esc only cancels.
+  (On Windows, Ctrl+Win+R also does it.)
 - Secure input fields (passwords, terminals with Secure Keyboard Entry) block typing and pasting.
 - Chrome and Electron apps (VS Code) don't report their focused text field, so switching tabs inside
   one of their windows during a dictation isn't detected.

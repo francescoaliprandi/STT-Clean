@@ -36,7 +36,7 @@ import cleanup
 from cleanup import Cleaner, Glossary
 from live import advance
 from output_win import blocked, can_post, copy, paste, retype
-from tray_win import GLOSSARY, ROOT, Tray, status
+from tray_win import GLOSSARY, ROOT, SETTINGS, Tray, status
 import win32 as W
 
 MIN_SECONDS = 0.3         # shorter clicks are ignored
@@ -163,7 +163,11 @@ def work(args, ui: Tray) -> None:
     ui.ready = transcribe is not None
     ui.call_after(ui.show)
     if ui.ready:
-        status(f"Ready: click the STT-Clean icon to dictate, click again to stop, Esc to cancel. LLM: {llm}.", keep=True)
+        how = f"click the STT-Clean icon or press {ui.shortcut}" if ui.shortcut else "click the STT-Clean icon"
+        status(f"Ready: {how} to dictate, again to stop, Esc to cancel. LLM: {llm}.", keep=True)
+    if s["hotkey"] and not ui.shortcut:
+        warnings.append(f"⚠️  The shortcut {s['hotkey']} is taken by another app (or not understood): change "
+                        f"\"hotkey\" in {SETTINGS}, then restart STT-Clean. Clicking the icon still works.")
     for warning in warnings:
         status(warning, keep=True)
 

@@ -44,10 +44,10 @@ MIN_SECONDS = 0.3         # shorter clicks are ignored
 # (LM Studio's id depends on the variant downloaded: google/gemma-4-12b, gemma-4-12b-it-qat, ...; Ollama: gemma4:12b)
 GEMMA = re.compile(r"gemma-?4[-:]12b", re.IGNORECASE)
 DEFAULT_LLM = ("lmstudio", "google/gemma-4-12b")    # named in the warning when no server has a model
-MEDIA = os.path.join(os.environ.get("WINDIR", r"C:\Windows"), "Media")
-SOUND_START = os.path.join(MEDIA, "Speech On.wav")
-SOUND_STOP = os.path.join(MEDIA, "Speech Off.wav")
-SOUND_CANCEL = os.path.join(MEDIA, "Speech Sleep.wav")
+# soft notes made by windows/make_sounds.py (Windows' own speech sounds are metallic), like macOS' Tink, Pop, Funk
+SOUND_START = os.path.join(ROOT, "windows", "sounds", "start.wav")
+SOUND_STOP = os.path.join(ROOT, "windows", "sounds", "stop.wav")
+SOUND_CANCEL = os.path.join(ROOT, "windows", "sounds", "cancel.wav")
 
 
 def play(path: str) -> None:

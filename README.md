@@ -278,7 +278,7 @@ src/                   The app (Python, ~1180 lines)
 
 install.cmd, install.ps1   Windows one-step install: Python packages in .venv, Start menu shortcut
 macos/                 App bundle: build_app.sh, launcher.c, Info.plist, AppIcon.icns, make_icon.py
-windows/               AppIcon.ico, tray icons, make_icons.py
+windows/               AppIcon.ico, tray icons, start/stop/cancel sounds, make_icons.py, make_sounds.py
 tests/                 31 unit tests, LLM benchmark, end-to-end and typing checks
 assets/                Logo and 1024 px app icon
 ```
